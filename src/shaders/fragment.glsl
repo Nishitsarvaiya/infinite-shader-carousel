@@ -1,13 +1,22 @@
-uniform float time;
+precision highp float;
 
-uniform vec4 resolution;
+uniform vec2 uImageSizes;
+uniform vec2 uPlaneSizes;
+uniform sampler2D tMap;
+
 varying vec2 vUv;
-varying vec3 vPosition;
 
-uniform sampler2D uTexture;
-uniform sampler2D uDisplacement;
-float PI = 3.141592653589793238;
+void main() {
+  vec2 ratio = vec2(
+    min((uPlaneSizes.x / uPlaneSizes.y) / (uImageSizes.x / uImageSizes.y), 1.0),
+    min((uPlaneSizes.y / uPlaneSizes.x) / (uImageSizes.y / uImageSizes.x), 1.0)
+  );
 
-void main()	{
-	gl_FragColor = vec4(vUv, 1.0, 1.0);
+  vec2 uv = vec2(
+    vUv.x * ratio.x + (1.0 - ratio.x) * 0.5,
+    vUv.y * ratio.y + (1.0 - ratio.y) * 0.5
+  );
+
+  gl_FragColor.rgb = texture2D(tMap, uv).rgb;
+  gl_FragColor.a = 1.0;
 }

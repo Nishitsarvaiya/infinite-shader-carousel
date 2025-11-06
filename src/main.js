@@ -1,126 +1,182 @@
-import './style.css';
+import normalizeWheel from 'normalize-wheel';
+import Media from './modules/Media';
+import './style.scss';
 
-import { DoubleSide, Mesh, OrthographicCamera, PlaneGeometry, SRGBColorSpace, Scene, ShaderMaterial, Vector4, WebGLRenderer } from 'three';
-import fragment from './shaders/fragment.glsl';
-import vertex from './shaders/vertex.glsl';
+import { PerspectiveCamera, PlaneGeometry, SRGBColorSpace, Scene, WebGLRenderer } from 'three';
+import { lerp } from './utils';
 
 export default class Sketch {
 	constructor(options) {
 		this.scene = new Scene();
 		this.container = options.dom;
-		this.width = this.container.offsetWidth;
-		this.height = this.container.offsetHeight;
-		this.renderer = new WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+		this.screen = {
+			width: this.container.offsetWidth,
+			height: this.container.offsetHeight,
+		};
+		this.renderer = new WebGLRenderer({ antialias: true, alpha: true });
 		this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-		this.renderer.setSize(this.width, this.height);
-		this.renderer.setClearColor(0x121212, 1);
+		this.renderer.setSize(this.screen.width, this.screen.height);
+		this.renderer.setClearColor(0xffffff, 1);
 		this.renderer.physicallyCorrectLights = true;
 		this.renderer.outputColorSpace = SRGBColorSpace;
 
 		this.container.appendChild(this.renderer.domElement);
 
-		// this.camera = new PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
-		var frustumSize = this.height;
-		var aspect = this.width / this.height;
-		this.camera = new OrthographicCamera(
-			(frustumSize * aspect) / -2,
-			(frustumSize * aspect) / 2,
-			frustumSize / 2,
-			frustumSize / -2,
-			-1000,
-			1000
-		);
-		this.camera.position.set(0, 0, 2);
+		const fov = 45;
+		const aspect = window.innerWidth / window.innerHeight;
+		const near = 0.1;
+		const far = 100;
+
+		this.camera = new PerspectiveCamera(fov, aspect, near, far);
+		this.camera.position.z = 5;
 		// this.controls = new OrbitControls(this.camera, this.renderer.domElement);
 
 		this.time = 0;
-		this.mouse = {
-			x: 0,
-			y: 0,
-			prevX: 0,
-			prevY: 0,
-			vX: 0,
-			vY: 0,
+		this.scroll = {
+			ease: 0.06,
+			current: 0,
+			target: 0,
+			last: 0,
 		};
 
 		this.isPlaying = true;
-		this.addObjects();
-		this.resize();
+		this.createGallery();
+		this.onResize();
+		this.createGeometry();
+		this.createMedias();
 		this.render();
-		this.setupResize();
-		this.mouseEvents();
+		this.eventListeners();
 	}
 
-	mouseEvents() {
-		window.addEventListener('mousemove', (e) => {
-			this.mouse.prevX = this.mouse.x;
-			this.mouse.prevY = this.mouse.y;
-			this.mouse.x = e.clientX - this.width / 2;
-			this.mouse.y = this.height / 2 - e.clientY;
-			this.mouse.vX = this.mouse.x - this.mouse.prevX;
-			this.mouse.vY = this.mouse.y - this.mouse.prevY;
-		});
+	createGallery() {
+		this.gallery = document.querySelector('.carousel');
 	}
 
-	setupResize() {
-		window.addEventListener('resize', this.resize.bind(this));
+	createGeometry() {
+		this.planeGeometry = new PlaneGeometry(1, 1, 32, 32);
 	}
 
-	resize() {
-		this.width = this.container.offsetWidth;
-		this.height = this.container.offsetHeight;
-		this.renderer.setSize(this.width, this.height);
-		this.camera.aspect = this.width / this.height;
+	createMedias() {
+		this.mediaEls = document.querySelectorAll('.carousel__figure');
+		this.medias = Array.from(this.mediaEls).map(
+			(el) =>
+				new Media({
+					el,
+					geometry: this.planeGeometry,
+					scene: this.scene,
+					renderer: this.renderer,
+					screen: this.screen,
+					viewport: this.viewport,
+					width: this.galleryWidth,
+				})
+		);
+	}
 
-		// image cover
-		this.imageAspect = 2400 / 1920;
-		let a1;
-		let a2;
-		if (this.height / this.width > this.imageAspect) {
-			a1 = (this.width / this.height) * this.imageAspect;
-			a2 = 1;
-		} else {
-			a1 = 1;
-			a2 = this.height / this.width / this.imageAspect;
-		}
+	eventListeners() {
+		window.addEventListener('resize', this.onResize.bind(this));
+		window.addEventListener('mousewheel', this.onWheel.bind(this));
+		window.addEventListener('wheel', this.onWheel.bind(this));
 
-		this.material.uniforms.resolution.value.x = this.width;
-		this.material.uniforms.resolution.value.y = this.height;
-		this.material.uniforms.resolution.value.z = a1;
-		this.material.uniforms.resolution.value.w = a2;
+		window.addEventListener('mousedown', this.onTouchDown.bind(this));
+		window.addEventListener('mousemove', this.onTouchMove.bind(this));
+		window.addEventListener('mouseup', this.onTouchUp.bind(this));
 
+		window.addEventListener('touchstart', this.onTouchDown.bind(this));
+		window.addEventListener('touchmove', this.onTouchMove.bind(this));
+		window.addEventListener('touchend', this.onTouchUp.bind(this));
+	}
+
+	onWheel(e) {
+		const normalized = normalizeWheel(e);
+		const speed = normalized.pixelY;
+
+		this.scroll.target += speed * 0.8;
+	}
+
+	onTouchDown(event) {
+		this.isDown = true;
+
+		this.scroll.position = this.scroll.current;
+		this.start = event.touches ? event.touches[0].clientX : event.clientX;
+	}
+
+	onTouchMove(event) {
+		if (!this.isDown) return;
+
+		const x = event.touches ? event.touches[0].clientX : event.clientX;
+		const distance = (this.start - x) * 2;
+
+		this.scroll.target = this.scroll.position + distance;
+	}
+
+	onTouchUp() {
+		this.isDown = false;
+	}
+
+	onResize() {
+		this.screen = {
+			width: this.container.offsetWidth,
+			height: this.container.offsetHeight,
+		};
+
+		this.renderer.setSize(this.screen.width, this.screen.height);
+
+		this.camera.aspect = this.screen.width / this.screen.height;
 		this.camera.updateProjectionMatrix();
-	}
 
-	addObjects() {
-		this.material = new ShaderMaterial({
-			extensions: {
-				derivatives: '#extension GL_OES_standard_derivatives : enable',
-			},
-			side: DoubleSide,
-			uniforms: {
-				time: {
-					value: 0,
-				},
-				resolution: {
-					value: new Vector4(),
-				},
-			},
-			vertexShader: vertex,
-			fragmentShader: fragment,
-		});
+		// Equivalent of OGL viewport math
+		const fov = this.camera.fov * (Math.PI / 180);
+		const height = 2 * Math.tan(fov / 2) * this.camera.position.z;
+		const width = height * this.camera.aspect;
 
-		this.geometry = new PlaneGeometry(this.width, this.height, 1, 1);
-		this.plane = new Mesh(this.geometry, this.material);
-		this.scene.add(this.plane);
+		this.viewport = {
+			width: width,
+			height: height,
+		};
+
+		this.galleryBounds = this.gallery.getBoundingClientRect();
+		this.galleryWidth = (this.viewport.width * this.galleryBounds.width) / this.screen.width;
+
+		if (this.medias) {
+			this.medias.forEach((media) =>
+				media.onResize({
+					width: this.galleryWidth,
+					screen: this.screen,
+					viewport: this.viewport,
+				})
+			);
+		}
 	}
 
 	render() {
 		if (!this.isPlaying) return;
 		this.time += 0.05;
-		this.material.uniforms.time.value = this.time;
-		requestAnimationFrame(this.render.bind(this));
+
+		this.scroll.current = lerp(this.scroll.current, this.scroll.target, this.scroll.ease);
+
+		// Compute velocity
+		this.scroll.velocity = this.scroll.current - this.scroll.last;
+
+		// Apply friction when user isn’t dragging or scrolling
+		if (!this.isDown) {
+			this.scroll.target += this.scroll.velocity * 0.4; // inertia (0.9 = friction)
+		}
+
+		if (this.scroll.current > this.scroll.last) {
+			this.direction = 'down';
+		} else if (this.scroll.current < this.scroll.last) {
+			this.direction = 'up';
+		}
+
+		if (this.medias) {
+			this.medias.forEach((media) => media.update(this.scroll, this.direction));
+		}
+
 		this.renderer.render(this.scene, this.camera);
+
+		this.scroll.last = this.scroll.current;
+
+		requestAnimationFrame(this.render.bind(this));
 	}
 }
 

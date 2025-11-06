@@ -1,12 +1,19 @@
-uniform float time;
+#define PI 3.1415926535897932384626433832795
+
+precision highp float;
+precision highp int;
+
+uniform float uStrength;
+uniform vec2 uViewportSizes;
 
 varying vec2 vUv;
-varying vec3 vPosition;
-
-uniform sampler2D uTexture;
-uniform sampler2D uDisplacement;
 
 void main() {
+  vec4 newPosition = modelViewMatrix * vec4(position, 1.0);
+
+  newPosition.z += abs(sin(newPosition.x / uViewportSizes.x * PI + PI / 2.0) * -uStrength);
+
   vUv = uv;
-  gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+
+  gl_Position = projectionMatrix * newPosition;
 }
