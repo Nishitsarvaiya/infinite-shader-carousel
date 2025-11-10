@@ -1,5 +1,5 @@
 :root {
-	font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+	font-family: 'Hanken Grotesk', system-ui, Avenir, Helvetica, Arial, sans-serif;
 	line-height: 1.5;
 	font-weight: 400;
 
@@ -10,6 +10,8 @@
 	text-rendering: optimizeLegibility;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
+
+	--foreground: #09090b;
 }
 
 *,
@@ -34,6 +36,7 @@ body {
 	height: 100dvh;
 	max-height: 100vh;
 	max-height: 100dvh;
+	color: var(--foreground);
 }
 
 #app {
@@ -49,6 +52,37 @@ canvas {
 	top: 0;
 	left: 0;
 	z-index: 1;
+}
+
+.header {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	padding: 32px;
+	z-index: 2;
+	display: flex;
+	justify-content: space-between;
+}
+
+a,
+a:visited {
+	color: var(--foreground);
+}
+
+h1 {
+	font-size: 2rem;
+}
+
+.instructions {
+	position: fixed;
+	bottom: 32px;
+	left: 0;
+	width: 100%;
+	z-index: 2;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
 .carousel {
@@ -74,7 +108,7 @@ canvas {
 		top: 0;
 		left: 50%;
 		transform: translateX(-50%);
-		width: calc(100% - 24px);
+		width: calc(100% - (24 / 1920) * 100vw);
 		height: 100%;
 	}
 

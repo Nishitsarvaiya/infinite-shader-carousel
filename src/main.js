@@ -1,6 +1,5 @@
 import normalizeWheel from 'normalize-wheel';
 import Media from './modules/Media';
-import './style.scss';
 
 import { PerspectiveCamera, PlaneGeometry, SRGBColorSpace, Scene, WebGLRenderer } from 'three';
 import { lerp } from './utils';
@@ -33,7 +32,7 @@ export default class Sketch {
 
 		this.time = 0;
 		this.scroll = {
-			ease: 0.06,
+			ease: 0.08,
 			current: 0,
 			target: 0,
 			last: 0,
@@ -53,7 +52,7 @@ export default class Sketch {
 	}
 
 	createGeometry() {
-		this.planeGeometry = new PlaneGeometry(1, 1, 32, 32);
+		this.planeGeometry = new PlaneGeometry(1, 1, 16, 16);
 	}
 
 	createMedias() {
@@ -159,7 +158,7 @@ export default class Sketch {
 
 		// Apply friction when user isn’t dragging or scrolling
 		if (!this.isDown) {
-			this.scroll.target += this.scroll.velocity * 0.4; // inertia (0.9 = friction)
+			this.scroll.target += this.scroll.velocity * 0.2; // inertia (0.9 = friction)
 		}
 
 		if (this.scroll.current > this.scroll.last) {

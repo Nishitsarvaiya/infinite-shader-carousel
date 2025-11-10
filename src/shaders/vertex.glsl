@@ -11,9 +11,12 @@ varying vec2 vUv;
 void main() {
   vec4 newPosition = modelViewMatrix * vec4(position, 1.0);
 
-  newPosition.z += abs(sin(newPosition.x / uViewportSizes.x * PI + PI / 2.0) * -uStrength);
+  newPosition.z += cos(newPosition.x / uViewportSizes.x * PI + PI / 2.5) * -uStrength;
 
   vUv = uv;
+  // newPosition.x += cos(uv.y * PI) * -uStrength;
+  // newPosition.y += abs(cos(newPosition.x / uViewportSizes.x * PI + PI / 2.0)) * uStrength * 2.0;
+  newPosition.x += abs(sin(newPosition.x / uViewportSizes.x * PI + PI / 2.0)) * uStrength * 2.0;
 
   gl_Position = projectionMatrix * newPosition;
 }
