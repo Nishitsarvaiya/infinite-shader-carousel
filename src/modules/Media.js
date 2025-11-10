@@ -120,7 +120,7 @@ export default class Media {
 		}
 
 		// bend strength from scroll delta
-		const strengthFactor = window.innerWidth > 1024 ? 20 : 10;
+		const strengthFactor = window.innerWidth > 1024 ? 20 : 5;
 		const rawStrength = ((x.current - x.last) / this.screen.width) * strengthFactor;
 		const easedStrength = Math.sign(rawStrength) * Math.pow(Math.abs(rawStrength), 0.8);
 		this.plane.material.uniforms.uStrength.value = lerp(this.plane.material.uniforms.uStrength.value, easedStrength, 0.1);

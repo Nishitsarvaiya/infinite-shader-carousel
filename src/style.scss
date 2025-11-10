@@ -29,6 +29,10 @@ body {
 
 html {
 	font-size: calc(100vw / 1920 * 10);
+
+	@media screen and (max-width: 992px) {
+		font-size: calc(100vw / 992 * 20);
+	}
 }
 
 body {
@@ -72,6 +76,7 @@ a:visited {
 
 h1 {
 	font-size: 2rem;
+	line-height: 1;
 }
 
 .instructions {
@@ -101,6 +106,10 @@ h1 {
 		aspect-ratio: 500 / 670;
 		flex-shrink: 0;
 		overflow: hidden;
+
+		@media screen and (max-width: 992px) {
+			width: calc((400 / 992) * 100vw);
+		}
 	}
 
 	&__figure {
