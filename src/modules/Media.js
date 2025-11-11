@@ -1,4 +1,4 @@
-import { Mesh, ShaderMaterial, TextureLoader, PlaneGeometry, Vector2, LinearFilter } from 'three';
+import { Mesh, ShaderMaterial, TextureLoader, PlaneGeometry, Vector2, LinearFilter, DoubleSide } from 'three';
 
 import fragment from '../shaders/fragment.glsl';
 import vertex from '../shaders/vertex.glsl';
@@ -47,6 +47,7 @@ export default class Media {
 					uMode: { value: 0 },
 				},
 				transparent: true,
+				side: DoubleSide,
 			});
 
 			this.plane = new Mesh(this.geometry, this.material);

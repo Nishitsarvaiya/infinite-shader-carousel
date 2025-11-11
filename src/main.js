@@ -52,7 +52,7 @@ export default class Sketch {
 	}
 
 	createGeometry() {
-		this.planeGeometry = new PlaneGeometry(1, 1, 16, 16);
+		this.planeGeometry = new PlaneGeometry(1, 1, 512, 512);
 	}
 
 	createMedias() {
