@@ -75,21 +75,42 @@ a:visited {
 }
 
 h1 {
-	font-size: 2rem;
+	font-size: 1.6rem;
 	line-height: 1;
 }
 
-.instructions {
+.footer {
 	position: fixed;
-	bottom: 32px;
+	bottom: 0;
 	left: 0;
 	width: 100%;
 	z-index: 2;
+	padding: 32px;
 	display: flex;
 	align-items: center;
-	justify-content: center;
+	justify-content: space-between;
 }
 
+.btns {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+
+	.demo-btn {
+		font-family: inherit;
+		background: none;
+		border: none;
+		font-size: 1.6rem;
+		cursor: pointer;
+		opacity: 0.5;
+		transition: 250ms ease;
+
+		&:hover,
+		&.is-active {
+			opacity: 1;
+		}
+	}
+}
 .carousel {
 	width: fit-content;
 	position: fixed;

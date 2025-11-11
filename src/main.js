@@ -83,6 +83,23 @@ export default class Sketch {
 		window.addEventListener('touchstart', this.onTouchDown.bind(this));
 		window.addEventListener('touchmove', this.onTouchMove.bind(this));
 		window.addEventListener('touchend', this.onTouchUp.bind(this));
+
+		const buttons = document.querySelectorAll('.demo-btn');
+
+		document.querySelectorAll('[data-mode]').forEach((btn) => {
+			btn.addEventListener('click', () => {
+				const mode = Number(btn.dataset.mode);
+
+				// Set uniform for all medias
+				this.medias.forEach((media) => {
+					media.material.uniforms.uMode.value = mode;
+				});
+
+				// Update active state
+				buttons.forEach((b) => b.classList.remove('is-active'));
+				btn.classList.add('is-active');
+			});
+		});
 	}
 
 	onWheel(e) {

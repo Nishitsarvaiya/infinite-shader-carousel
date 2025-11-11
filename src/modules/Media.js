@@ -44,6 +44,7 @@ export default class Media {
 						value: new Vector2(this.viewport.width, this.viewport.height),
 					},
 					uStrength: { value: 0 },
+					uMode: { value: 0 },
 				},
 				transparent: true,
 			});
@@ -87,7 +88,9 @@ export default class Media {
 
 	updateY(y = 0) {
 		this.plane.position.y =
-			this.viewport.height / 2 - this.plane.scale.y / 2 - ((this.bounds.top - y) / this.screen.height) * this.viewport.height;
+			this.viewport.height / 2 -
+			this.plane.scale.y / 2 -
+			((this.bounds.top - y) / this.screen.height) * this.viewport.height;
 	}
 
 	/**
@@ -123,7 +126,11 @@ export default class Media {
 		const strengthFactor = window.innerWidth > 1024 ? 20 : 5;
 		const rawStrength = ((x.current - x.last) / this.screen.width) * strengthFactor;
 		const easedStrength = Math.sign(rawStrength) * Math.pow(Math.abs(rawStrength), 0.8);
-		this.plane.material.uniforms.uStrength.value = lerp(this.plane.material.uniforms.uStrength.value, easedStrength, 0.1);
+		this.plane.material.uniforms.uStrength.value = lerp(
+			this.plane.material.uniforms.uStrength.value,
+			easedStrength,
+			0.1
+		);
 	}
 
 	/**
