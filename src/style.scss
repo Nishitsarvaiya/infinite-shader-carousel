@@ -28,14 +28,11 @@ body {
 }
 
 html {
-	font-size: calc(100vw / 1920 * 10);
-
-	@media screen and (max-width: 992px) {
-		font-size: calc(100vw / 992 * 20);
-	}
+	font-size: 62.5%;
 }
 
 body {
+	font-size: 1.6rem;
 	height: 100vh;
 	height: 100dvh;
 	max-height: 100vh;
@@ -69,6 +66,14 @@ canvas {
 	justify-content: space-between;
 }
 
+.logo {
+	display: block;
+
+	svg {
+		width: 7.2rem;
+	}
+}
+
 a,
 a:visited {
 	color: var(--foreground);
@@ -91,24 +96,18 @@ h1 {
 	justify-content: space-between;
 }
 
-.btns {
-	display: flex;
-	align-items: center;
-	gap: 16px;
-
-	.demo-btn {
+.controls {
+	label {
+		font-size: 1.6rem;
+		margin-right: 0.5em;
+	}
+	select {
 		font-family: inherit;
-		background: none;
-		border: none;
+		background: #09090b0a;
+		border: 1px solid #09090b17;
+		padding: 0.35em 0.75em;
 		font-size: 1.6rem;
 		cursor: pointer;
-		opacity: 0.5;
-		transition: 250ms ease;
-
-		&:hover,
-		&.is-active {
-			opacity: 1;
-		}
 	}
 }
 .carousel {
@@ -140,6 +139,10 @@ h1 {
 		transform: translateX(-50%);
 		width: calc(100% - (24 / 1920) * 100vw);
 		height: 100%;
+
+		@media screen and (max-width: 992px) {
+			width: calc(100% - (24 / 992) * 100vw);
+		}
 	}
 
 	&__image {

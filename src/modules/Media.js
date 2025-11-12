@@ -5,7 +5,7 @@ import vertex from '../shaders/vertex.glsl';
 import { lerp } from '../utils';
 
 export default class Media {
-	constructor({ el, geometry, scene, screen, viewport, width }) {
+	constructor({ el, geometry, scene, screen, viewport, width, select }) {
 		this.element = el;
 		this.image = this.element.querySelector('img');
 
@@ -15,6 +15,7 @@ export default class Media {
 		this.screen = screen;
 		this.viewport = viewport;
 		this.width = width;
+		this.select = select;
 
 		this.createMesh();
 	}
@@ -44,7 +45,8 @@ export default class Media {
 						value: new Vector2(this.viewport.width, this.viewport.height),
 					},
 					uStrength: { value: 0 },
-					uMode: { value: 0 },
+					uMode: { value: this.select.value },
+					vFoldLight: { value: 1.0 },
 				},
 				transparent: true,
 				side: DoubleSide,

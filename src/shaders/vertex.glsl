@@ -9,6 +9,7 @@ uniform vec2 uViewportSizes;
 uniform int uMode;
 
 varying vec2 vUv;
+varying float vFoldLight;
 
 void main() {
   vec4 newPosition = modelViewMatrix * vec4(position, 1.0);
@@ -23,8 +24,12 @@ void main() {
 
   // Mode 1 — wave ripple
   if (uMode == 1) {
-    float wave = sin((uv.x + uv.y) * 2.0 + uStrength * 2.0);
-    newPosition.z += wave * uStrength;
+    // mirror effect based on scroll direction
+    float dir = sign(uStrength); // +1 = right, -1 = left
+    float phase = (uv.x * dir + uv.y) * 2.0 + abs(uStrength) * 2.0;
+
+    float wave = sin(phase);
+    newPosition.z += wave * abs(uStrength);
   }
 
   // Mode 2 — liquid melt
@@ -59,7 +64,7 @@ void main() {
 
   if (uMode == 7) {
     vec2 p = uv - 0.5;
-    float angle = uStrength * 2.0;
+    float angle = uStrength * 1.5;
     float s = sin(angle);
     float c = cos(angle);
 
@@ -78,9 +83,10 @@ void main() {
 
   if (uMode == 8) {
     float d = distance(uv, vec2(0.5));
-    float pulse = sin(d * 5.0 + uStrength * 5.0);
+    float s = abs(uStrength);
+    float pulse = sin(d * 5.0 + s * 5.0);
 
-    newPosition.z += pulse * uStrength * 2.0;
+    newPosition.z += pulse * s * 2.0;
   }
 
   if (uMode == 9) {
@@ -101,9 +107,11 @@ void main() {
 
   if (uMode == 11) {
     float t = newPosition.x / uViewportSizes.x * PI;
+    // float s = smoothstep(0.0, 1.0, abs(uStrength));
+    float s = abs(uStrength);
 
-    newPosition.x += sin(t * 1.5) * uStrength * 2.5;
-    newPosition.z += -cos(t * 2.0) * uStrength * 1.5;
+    newPosition.x += sin(t * 1.5) * s * 2.5;
+    newPosition.z += -cos(t * 2.0) * s * 1.5;
   }
 
   gl_Position = projectionMatrix * newPosition;

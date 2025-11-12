@@ -39,6 +39,8 @@ export default class Sketch {
 		};
 
 		this.isPlaying = true;
+		this.select = document.getElementById('shaderMode');
+
 		this.createGallery();
 		this.onResize();
 		this.createGeometry();
@@ -67,6 +69,7 @@ export default class Sketch {
 					screen: this.screen,
 					viewport: this.viewport,
 					width: this.galleryWidth,
+					select: this.select,
 				})
 		);
 	}
@@ -84,20 +87,15 @@ export default class Sketch {
 		window.addEventListener('touchmove', this.onTouchMove.bind(this));
 		window.addEventListener('touchend', this.onTouchUp.bind(this));
 
-		const buttons = document.querySelectorAll('.demo-btn');
+		// Load saved mode
+		const savedMode = localStorage.getItem('shaderMode');
+		if (savedMode) this.select.value = savedMode;
 
-		document.querySelectorAll('[data-mode]').forEach((btn) => {
-			btn.addEventListener('click', () => {
-				const mode = Number(btn.dataset.mode);
-
-				// Set uniform for all medias
-				this.medias.forEach((media) => {
-					media.material.uniforms.uMode.value = mode;
-				});
-
-				// Update active state
-				buttons.forEach((b) => b.classList.remove('is-active'));
-				btn.classList.add('is-active');
+		this.select.addEventListener('change', (e) => {
+			const mode = e.target.value;
+			localStorage.setItem('shaderMode', mode);
+			this.medias.forEach((media) => {
+				media.plane.material.uniforms.uMode.value = Number(mode);
 			});
 		});
 	}
