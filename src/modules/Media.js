@@ -5,7 +5,7 @@ import vertex from '../shaders/vertex.glsl';
 import { lerp } from '../utils';
 
 export default class Media {
-	constructor({ el, geometry, scene, screen, viewport, width, select }) {
+	constructor({ el, geometry, scene, screen, viewport, width, select, onLoad }) {
 		this.element = el;
 		this.image = this.element.querySelector('img');
 
@@ -16,6 +16,7 @@ export default class Media {
 		this.viewport = viewport;
 		this.width = width;
 		this.select = select;
+		this.onLoad = onLoad;
 
 		this.createMesh();
 	}
@@ -51,12 +52,19 @@ export default class Media {
 				transparent: true,
 				side: DoubleSide,
 			});
+			this.material.depthTest = false;
+			this.material.depthWrite = false;
 
 			this.plane = new Mesh(this.geometry, this.material);
 			this.scene.add(this.plane);
 
 			this.createBounds();
 			this.onResize();
+
+			// Notify that this plane has loaded
+			if (this.onLoad) {
+				this.onLoad();
+			}
 		});
 	}
 
@@ -91,9 +99,7 @@ export default class Media {
 
 	updateY(y = 0) {
 		this.plane.position.y =
-			this.viewport.height / 2 -
-			this.plane.scale.y / 2 -
-			((this.bounds.top - y) / this.screen.height) * this.viewport.height;
+			this.viewport.height / 2 - this.plane.scale.y / 2 - ((this.bounds.top - y) / this.screen.height) * this.viewport.height;
 	}
 
 	/**
@@ -129,11 +135,36 @@ export default class Media {
 		const strengthFactor = window.innerWidth > 1024 ? 20 : 5;
 		const rawStrength = ((x.current - x.last) / this.screen.width) * strengthFactor;
 		const easedStrength = Math.sign(rawStrength) * Math.pow(Math.abs(rawStrength), 0.8);
-		this.plane.material.uniforms.uStrength.value = lerp(
-			this.plane.material.uniforms.uStrength.value,
-			easedStrength,
-			0.1
-		);
+		this.plane.material.uniforms.uStrength.value = lerp(this.plane.material.uniforms.uStrength.value, easedStrength, 0.1);
+	}
+
+	/**
+	 * Calculate the scroll position needed to center this plane at viewport center (x = 0)
+	 */
+	getSnapScrollPosition() {
+		if (!this.plane) return null;
+
+		// Recalculate bounds to get current DOM position
+		const bounds = this.element.getBoundingClientRect();
+
+		// We want plane.position.x = 0
+		// From updateX: plane.position.x = -viewport.width/2 + plane.scale.x/2 + ((bounds.left - scroll) / screen.width) * viewport.width - extra
+		// Solving for scroll when plane.position.x = 0:
+		// 0 = -viewport.width/2 + plane.scale.x/2 + ((bounds.left - scroll) / screen.width) * viewport.width - extra
+		// scroll = bounds.left - (viewport.width/2 - plane.scale.x/2 + extra) * screen.width / viewport.width
+
+		const scrollPosition =
+			bounds.left - ((this.viewport.width / 2 - this.plane.scale.x / 2 + this.extra) * this.screen.width) / this.viewport.width;
+
+		return scrollPosition;
+	}
+
+	/**
+	 * Get the distance from this plane's center to the viewport center
+	 */
+	getDistanceToCenter() {
+		if (!this.plane) return Infinity;
+		return Math.abs(this.plane.position.x);
 	}
 
 	/**

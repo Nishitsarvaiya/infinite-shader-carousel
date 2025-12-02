@@ -36,7 +36,16 @@ export default class Sketch {
 			current: 0,
 			target: 0,
 			last: 0,
+			velocity: 0,
 		};
+		this.snapThreshold = 1.0; // velocity threshold to trigger snap (pixels per frame) - higher = earlier snap
+		this.isSnapping = false;
+		this.snapTarget = null; // store the snap target once, don't recalculate
+		this.wasScrolling = false; // track if we were scrolling in previous frame
+		this.lastVelocity = 0; // track previous velocity to detect deceleration
+		this.planesLoaded = 0; // track how many planes have loaded
+		this.initialSnapDone = false; // track if initial snap has been done
+		this.framesAfterLoad = 0; // count frames after all planes loaded
 
 		this.isPlaying = true;
 		this.select = document.getElementById('shaderMode');
@@ -54,11 +63,21 @@ export default class Sketch {
 	}
 
 	createGeometry() {
-		this.planeGeometry = new PlaneGeometry(1, 1, 512, 512);
+		const isDesktop = window.innerWidth > 1200;
+		const isTablet = window.innerWidth > 768;
+
+		let segments;
+
+		if (isDesktop) segments = 256;
+		else if (isTablet) segments = 128;
+		else segments = 48;
+
+		this.planeGeometry = new PlaneGeometry(1, 1, segments, segments);
 	}
 
 	createMedias() {
 		this.mediaEls = document.querySelectorAll('.carousel__figure');
+		this.planesLoaded = 0;
 		this.medias = Array.from(this.mediaEls).map(
 			(el) =>
 				new Media({
@@ -70,6 +89,9 @@ export default class Sketch {
 					viewport: this.viewport,
 					width: this.galleryWidth,
 					select: this.select,
+					onLoad: () => {
+						this.planesLoaded++;
+					},
 				})
 		);
 	}
@@ -105,6 +127,9 @@ export default class Sketch {
 		const speed = normalized.pixelY;
 
 		this.scroll.target += speed * 0.8;
+		this.isSnapping = false; // cancel any ongoing snap
+		this.snapTarget = null; // clear snap target
+		this.wasScrolling = true; // mark that we're scrolling
 	}
 
 	onTouchDown(event) {
@@ -121,6 +146,9 @@ export default class Sketch {
 		const distance = (this.start - x) * 2;
 
 		this.scroll.target = this.scroll.position + distance;
+		this.isSnapping = false; // cancel any ongoing snap
+		this.snapTarget = null; // clear snap target
+		this.wasScrolling = true; // mark that we're scrolling
 	}
 
 	onTouchUp() {
@@ -151,14 +179,50 @@ export default class Sketch {
 		this.galleryBounds = this.gallery.getBoundingClientRect();
 		this.galleryWidth = (this.viewport.width * this.galleryBounds.width) / this.screen.width;
 
+		this.createGeometry(); // rebuild geometry based on new screen size
 		if (this.medias) {
-			this.medias.forEach((media) =>
+			this.medias.forEach((media) => {
+				media.plane.geometry.dispose();
+				media.plane.geometry = this.planeGeometry;
 				media.onResize({
 					width: this.galleryWidth,
 					screen: this.screen,
 					viewport: this.viewport,
-				})
-			);
+				});
+			});
+		}
+	}
+
+	snapToNearestPlane() {
+		if (!this.medias || this.medias.length === 0) return;
+
+		// If we already have a snap target, use it (don't recalculate)
+		if (this.snapTarget !== null) {
+			this.scroll.target = this.snapTarget;
+			this.isSnapping = true;
+			return;
+		}
+
+		// Find the plane closest to the viewport center
+		let nearestMedia = null;
+		let minDistance = Infinity;
+
+		this.medias.forEach((media) => {
+			if (!media.plane) return;
+			const distance = media.getDistanceToCenter();
+			if (distance < minDistance) {
+				minDistance = distance;
+				nearestMedia = media;
+			}
+		});
+
+		if (nearestMedia) {
+			const snapPosition = nearestMedia.getSnapScrollPosition();
+			if (snapPosition !== null) {
+				this.snapTarget = snapPosition; // store it once
+				this.scroll.target = lerp(snapPosition, this.scroll.target, 0.08);
+				this.isSnapping = true;
+			}
 		}
 	}
 
@@ -171,9 +235,18 @@ export default class Sketch {
 		// Compute velocity
 		this.scroll.velocity = this.scroll.current - this.scroll.last;
 
-		// Apply friction when user isn’t dragging or scrolling
-		if (!this.isDown) {
-			this.scroll.target += this.scroll.velocity * 0.2; // inertia (0.9 = friction)
+		// Detect deceleration (velocity decreasing significantly)
+		const isDecelerating =
+			Math.abs(this.scroll.velocity) < Math.abs(this.lastVelocity) * 0.7 && Math.abs(this.lastVelocity) > this.snapThreshold;
+
+		// Detect if scrolling has stopped (transition from scrolling to stopped)
+		// Trigger earlier when velocity drops below threshold OR when decelerating significantly
+		const isScrolling = Math.abs(this.scroll.velocity) > this.snapThreshold;
+		const justStopped = this.wasScrolling && (!isScrolling || isDecelerating) && !this.isDown;
+
+		// Apply friction when user isn't dragging or scrolling, but NOT when snapping
+		if (!this.isDown && !this.isSnapping) {
+			this.scroll.target += this.scroll.velocity * 0.001; // inertia
 		}
 
 		if (this.scroll.current > this.scroll.last) {
@@ -182,9 +255,34 @@ export default class Sketch {
 			this.direction = 'up';
 		}
 
+		// Update planes first to get their current positions
 		if (this.medias) {
 			this.medias.forEach((media) => media.update(this.scroll, this.direction));
 		}
+
+		// Initial snap after all planes are loaded (wait a few frames for positioning)
+		if (!this.initialSnapDone && this.planesLoaded === this.medias.length && this.medias.every((media) => media.plane)) {
+			this.framesAfterLoad++;
+			// Wait 3 frames for planes to be positioned correctly
+			if (this.framesAfterLoad >= 3) {
+				this.snapToNearestPlane();
+				this.initialSnapDone = true;
+			}
+		}
+
+		// Snap to nearest plane when scrolling just stopped
+		if (justStopped && !this.isSnapping) {
+			this.snapToNearestPlane();
+		}
+
+		// Reset snapping flag and snap target when we've reached the target
+		if (this.isSnapping && Math.abs(this.scroll.current - this.scroll.target) < 0.1) {
+			this.isSnapping = false;
+			this.snapTarget = null; // clear snap target once we've reached it
+		}
+
+		// Update wasScrolling for next frame
+		this.wasScrolling = isScrolling;
 
 		this.renderer.render(this.scene, this.camera);
 
