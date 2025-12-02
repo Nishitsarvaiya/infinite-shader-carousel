@@ -87,7 +87,7 @@ export default class Sketch {
 					renderer: this.renderer,
 					screen: this.screen,
 					viewport: this.viewport,
-					width: this.galleryWidth,
+					height: this.galleryHeight,
 					select: this.select,
 					onLoad: () => {
 						this.planesLoaded++;
@@ -136,14 +136,14 @@ export default class Sketch {
 		this.isDown = true;
 
 		this.scroll.position = this.scroll.current;
-		this.start = event.touches ? event.touches[0].clientX : event.clientX;
+		this.start = event.touches ? event.touches[0].clientY : event.clientY;
 	}
 
 	onTouchMove(event) {
 		if (!this.isDown) return;
 
-		const x = event.touches ? event.touches[0].clientX : event.clientX;
-		const distance = (this.start - x) * 2;
+		const y = event.touches ? event.touches[0].clientY : event.clientY;
+		const distance = (this.start - y) * 2;
 
 		this.scroll.target = this.scroll.position + distance;
 		this.isSnapping = false; // cancel any ongoing snap
@@ -177,7 +177,8 @@ export default class Sketch {
 		};
 
 		this.galleryBounds = this.gallery.getBoundingClientRect();
-		this.galleryWidth = (this.viewport.width * this.galleryBounds.width) / this.screen.width;
+		this.galleryHeight = (this.viewport.height * this.galleryBounds.height) / this.screen.height;
+		console.log(this.galleryBounds, this.galleryHeight);
 
 		this.createGeometry(); // rebuild geometry based on new screen size
 		if (this.medias) {
@@ -185,7 +186,7 @@ export default class Sketch {
 				media.plane.geometry.dispose();
 				media.plane.geometry = this.planeGeometry;
 				media.onResize({
-					width: this.galleryWidth,
+					height: this.galleryHeight,
 					screen: this.screen,
 					viewport: this.viewport,
 				});

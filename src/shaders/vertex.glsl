@@ -19,7 +19,7 @@ void main() {
   // Mode 0 — your current distortion
   if (uMode == 0) {
     newPosition.z += cos(newPosition.x / uViewportSizes.x * PI + PI / 2.5) * -uStrength;
-    newPosition.x += abs(sin(newPosition.x / uViewportSizes.x * PI + PI / 2.0)) * uStrength * 2.0;
+    newPosition.y += abs(sin(newPosition.y / uViewportSizes.y * PI + PI / 2.0)) * uStrength * 2.0;
   }
 
   // Mode 1 — wave ripple
@@ -34,7 +34,7 @@ void main() {
 
   // Mode 2 — liquid melt
   if (uMode == 2) {
-    newPosition.x += sin(uv.y * PI) * -uStrength * 0.5;
+    newPosition.y -= sin(uv.x * PI) * -uStrength * 0.5;
     // newPosition.y += cos(uv.y * PI) * -uStrength * 0.5;
   }
 
@@ -45,8 +45,8 @@ void main() {
   }
 
   if (uMode == 4) {
-    float shear = sin(uv.x * PI * 2.0) * uStrength * 0.5;
-    newPosition.x += shear;
+    float shear = sin(uv.y * PI * 2.0) * uStrength * 0.5;
+    newPosition.y += shear;
     newPosition.z += shear;
   }
 
@@ -58,8 +58,8 @@ void main() {
   }
 
   if (uMode == 6) {
-    float crease = smoothstep(0.48, 0.52, uv.x);
-    newPosition.z += (crease - 0.5) * uStrength * 2.0;
+    float crease = smoothstep(0.48, 0.52, uv.y);
+    newPosition.z += (crease + 0.5) * uStrength * 2.0;
   }
 
   if (uMode == 7) {
@@ -84,7 +84,7 @@ void main() {
   if (uMode == 8) {
     float d = distance(uv, vec2(0.5));
     float s = abs(uStrength);
-    float pulse = sin(d * 5.0 + s * 5.0);
+    float pulse = sin(d * 2.0 + s * 5.0);
 
     newPosition.z += pulse * s * 2.0;
   }
@@ -99,10 +99,10 @@ void main() {
   }
   
   if (uMode == 10) {
-    float t = newPosition.x / uViewportSizes.x * PI;
+    float t = newPosition.y / uViewportSizes.y * PI;
 
     newPosition.z += cos(t * 1.25) * uStrength * 2.0;
-    newPosition.y += sin(t * 0.75) * uStrength * 1.2;
+    newPosition.y -= sin(t * 0.75) * uStrength * 1.2;
   }
 
   if (uMode == 11) {

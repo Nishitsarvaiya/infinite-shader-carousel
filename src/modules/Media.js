@@ -5,7 +5,7 @@ import vertex from '../shaders/vertex.glsl';
 import { lerp } from '../utils';
 
 export default class Media {
-	constructor({ el, geometry, scene, screen, viewport, width, select, onLoad }) {
+	constructor({ el, geometry, scene, screen, viewport, height, select, onLoad }) {
 		this.element = el;
 		this.image = this.element.querySelector('img');
 
@@ -14,7 +14,7 @@ export default class Media {
 		this.scene = scene;
 		this.screen = screen;
 		this.viewport = viewport;
-		this.width = width;
+		this.height = height;
 		this.select = select;
 		this.onLoad = onLoad;
 
@@ -91,55 +91,63 @@ export default class Media {
 	updateX(x = 0) {
 		// note: minus this.extra because OGL moves extra opposite the scroll
 		this.plane.position.x =
-			-this.viewport.width / 2 +
-			this.plane.scale.x / 2 +
-			((this.bounds.left - x) / this.screen.width) * this.viewport.width -
-			this.extra;
+			-this.viewport.width / 2 + this.plane.scale.x / 2 + ((this.bounds.left - x) / this.screen.width) * this.viewport.width;
 	}
 
 	updateY(y = 0) {
 		this.plane.position.y =
-			this.viewport.height / 2 - this.plane.scale.y / 2 - ((this.bounds.top - y) / this.screen.height) * this.viewport.height;
+			this.viewport.height / 2 -
+			this.plane.scale.y / 2 -
+			((this.bounds.top - y) / this.screen.height) * this.viewport.height -
+			this.extra;
 	}
 
 	/**
 	 * Update per frame
 	 */
-	update(x, direction) {
+	update(y, direction) {
 		if (!this.plane) return;
 
 		this.updateScale();
-		this.updateX(x.current);
-		this.updateY();
+		// this.updateX(x.current);
+		this.updateY(y.current);
 
-		const planeOffset = this.plane.scale.x;
-		const viewportOffset = this.viewport.width;
+		// Plane center is at position.y, so edges are at position.y ± scale.y/2
+		// Viewport center is at y=0, so edges are at ±viewport.height/2
+		const planeHalfHeight = this.plane.scale.y / 2;
+		const viewportHalfHeight = this.viewport.height / 2;
 
-		this.isBefore = this.plane.position.x + planeOffset < -viewportOffset;
-		this.isAfter = this.plane.position.x - planeOffset > viewportOffset;
+		// Check if plane is COMPLETELY outside viewport before wrapping
+		// isBefore: plane's TOP edge is below viewport bottom (plane completely below)
+		// isAfter: plane's BOTTOM edge is above viewport top (plane completely above)
+		this.isBefore = this.plane.position.y + planeHalfHeight < -viewportHalfHeight;
+		this.isAfter = this.plane.position.y - planeHalfHeight > viewportHalfHeight;
 
-		// direction names kept same as original OGL (“up” / “down”)
-		if (direction === 'down' && this.isBefore) {
-			this.extra -= this.width;
+		// When scrolling down, planes move up. If plane goes off top (isAfter), wrap to bottom.
+		// When scrolling up, planes move down. If plane goes off bottom (isBefore), wrap to top.
+		if (direction === 'down' && this.isAfter) {
+			// Plane went off top, wrap to bottom by moving it down
+			this.extra += this.height;
 			this.isBefore = false;
 			this.isAfter = false;
 		}
 
-		if (direction === 'up' && this.isAfter) {
-			this.extra += this.width;
+		if (direction === 'up' && this.isBefore) {
+			// Plane went off bottom, wrap to top by moving it up
+			this.extra -= this.height;
 			this.isBefore = false;
 			this.isAfter = false;
 		}
 
 		// bend strength from scroll delta
 		const strengthFactor = window.innerWidth > 1024 ? 20 : 5;
-		const rawStrength = ((x.current - x.last) / this.screen.width) * strengthFactor;
+		const rawStrength = ((y.current - y.last) / this.screen.height) * strengthFactor;
 		const easedStrength = Math.sign(rawStrength) * Math.pow(Math.abs(rawStrength), 0.8);
 		this.plane.material.uniforms.uStrength.value = lerp(this.plane.material.uniforms.uStrength.value, easedStrength, 0.1);
 	}
 
 	/**
-	 * Calculate the scroll position needed to center this plane at viewport center (x = 0)
+	 * Calculate the scroll position needed to center this plane at viewport center (y = 0)
 	 */
 	getSnapScrollPosition() {
 		if (!this.plane) return null;
@@ -147,14 +155,17 @@ export default class Media {
 		// Recalculate bounds to get current DOM position
 		const bounds = this.element.getBoundingClientRect();
 
-		// We want plane.position.x = 0
-		// From updateX: plane.position.x = -viewport.width/2 + plane.scale.x/2 + ((bounds.left - scroll) / screen.width) * viewport.width - extra
-		// Solving for scroll when plane.position.x = 0:
-		// 0 = -viewport.width/2 + plane.scale.x/2 + ((bounds.left - scroll) / screen.width) * viewport.width - extra
-		// scroll = bounds.left - (viewport.width/2 - plane.scale.x/2 + extra) * screen.width / viewport.width
+		// We want plane.position.y = 0
+		// From updateY: plane.position.y = viewport.height/2 - plane.scale.y/2 - ((bounds.top - scroll) / screen.height) * viewport.height - extra
+		// Solving for scroll when plane.position.y = 0:
+		// 0 = viewport.height/2 - plane.scale.y/2 - ((bounds.top - scroll) / screen.height) * viewport.height - extra
+		// 0 = viewport.height/2 - plane.scale.y/2 - (bounds.top - scroll) * viewport.height / screen.height - extra
+		// (bounds.top - scroll) * viewport.height / screen.height = viewport.height/2 - plane.scale.y/2 - extra
+		// bounds.top - scroll = (viewport.height/2 - plane.scale.y/2 - extra) * screen.height / viewport.height
+		// scroll = bounds.top - (viewport.height/2 - plane.scale.y/2 - extra) * screen.height / viewport.height
 
 		const scrollPosition =
-			bounds.left - ((this.viewport.width / 2 - this.plane.scale.x / 2 + this.extra) * this.screen.width) / this.viewport.width;
+			bounds.top - ((this.viewport.height / 2 - this.plane.scale.y / 2 - this.extra) * this.screen.height) / this.viewport.height;
 
 		return scrollPosition;
 	}
@@ -164,7 +175,7 @@ export default class Media {
 	 */
 	getDistanceToCenter() {
 		if (!this.plane) return Infinity;
-		return Math.abs(this.plane.position.x);
+		return Math.abs(this.plane.position.y);
 	}
 
 	/**
@@ -174,9 +185,9 @@ export default class Media {
 		this.extra = 0;
 
 		if (sizes) {
-			const { width, screen, viewport } = sizes;
+			const { height, screen, viewport } = sizes;
 
-			if (width) this.width = width;
+			if (height) this.height = height;
 			if (screen) this.screen = screen;
 			if (viewport) {
 				this.viewport = viewport;
