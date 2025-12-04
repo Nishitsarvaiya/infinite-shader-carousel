@@ -115,7 +115,7 @@ export default class Media {
 		// Plane center is at position.y, so edges are at position.y ± scale.y/2
 		// Viewport center is at y=0, so edges are at ±viewport.height/2
 		const planeHalfHeight = this.plane.scale.y / 2;
-		const viewportHalfHeight = this.viewport.height / 2;
+		const viewportHalfHeight = this.viewport.height;
 
 		// Check if plane is COMPLETELY outside viewport before wrapping
 		// isBefore: plane's TOP edge is below viewport bottom (plane completely below)

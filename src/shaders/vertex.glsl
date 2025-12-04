@@ -18,7 +18,7 @@ void main() {
 
   // Mode 0 — your current distortion
   if (uMode == 0) {
-    newPosition.z += cos(newPosition.x / uViewportSizes.x * PI + PI / 2.5) * -uStrength;
+    newPosition.z += cos(newPosition.y / uViewportSizes.y * PI + PI / 2.0) * -uStrength;
     newPosition.y += abs(sin(newPosition.y / uViewportSizes.y * PI + PI / 2.0)) * uStrength * 2.0;
   }
 
@@ -99,10 +99,11 @@ void main() {
   }
   
   if (uMode == 10) {
-    float t = newPosition.y / uViewportSizes.y * PI;
+    float t = newPosition.y / uViewportSizes.y * PI + PI / 2.5;
+    float s = abs(uStrength);
 
-    newPosition.z += cos(t * 1.25) * uStrength * 2.0;
-    newPosition.y -= sin(t * 0.75) * uStrength * 1.2;
+    newPosition.z -= cos(t * 0.5) * s * 1.2;
+    newPosition.y -= sin(t * 0.25) * s * 1.2;
   }
 
   if (uMode == 11) {
@@ -110,8 +111,8 @@ void main() {
     // float s = smoothstep(0.0, 1.0, abs(uStrength));
     float s = abs(uStrength);
 
-    newPosition.x += sin(t * 1.5) * s * 2.5;
-    newPosition.z += -cos(t * 2.0) * s * 1.5;
+    newPosition.z += -cos(t * 1.25) * s * 1.5;
+    newPosition.x -= sin(t * 0.75) * s * 2.5;
   }
 
   gl_Position = projectionMatrix * newPosition;
